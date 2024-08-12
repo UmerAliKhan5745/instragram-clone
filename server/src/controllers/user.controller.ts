@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
 import { User } from '../models/user.model';
+import { Post } from '../models/post.model';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import cloudinary from '../utils/cloudinary';
 import getDataUri from '../utils/dataUri';
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 interface UserRequest extends Request {
     body: {
@@ -84,6 +88,17 @@ export const login = async (req: any, res: Response) => {
                 success: false,
             });
         }
+
+        const populatedUserPost=await Promise.all(
+            user.posts.map(async(postId)=>{
+                const post=await Post.findById(postId)
+                    if(post?.author.equals(user.id)){
+                        return post
+                    }else{
+                        null
+                    }
+            })
+        )
         const userinfo = {
             _id: user._id,
             username: user.username,
@@ -92,9 +107,9 @@ export const login = async (req: any, res: Response) => {
             bio: user.bio,
             followers: user.followers,
             followings: user.followings,
-            posts: user.posts
+            posts: populatedUserPost
         }
-        const token = jwt.sign({ userId: user._id }, 'omeralikhan', { expiresIn: '1d' });
+        const token = jwt.sign({ userId: user._id },process.env.JWT_SECRET as string, { expiresIn: '1d' });
 
         return res.cookie("token", token, { httpOnly: true, sameSite: "strict", maxAge: 1 * 24 * 60 * 60 * 1000 }).json({
             message: `Welcome back ${user.username}`,
@@ -111,7 +126,6 @@ export const login = async (req: any, res: Response) => {
     }
 };
 
-
 export const logout = (req: any, res: any) => {
 
     try {
@@ -124,7 +138,6 @@ export const logout = (req: any, res: any) => {
         console.log(error);
     }
 }
-
 
 export const getProfile = async (req: any, res: any) => {
 
@@ -141,6 +154,7 @@ export const getProfile = async (req: any, res: any) => {
         console.log(error);
     }
 }
+
 export const editProfile = async (req: any, res: any) => {
 
     try {
@@ -152,7 +166,6 @@ export const editProfile = async (req: any, res: any) => {
             const fileUri = getDataUri(profilePicture);
             cloudResponse = await cloudinary.uploader.upload(fileUri as string);
         }
-
         const user = await User.findById(userId).select('-password')
         if (!user) {
             return res.status(404).json({
@@ -202,9 +215,7 @@ export const getsuggestedUser = async (req: any, res: Response) => {
 
 }
 
-
-
-export const follewingandfollower=async(req:any,res:any)=>{
+export const follewingandfollower = async (req: any, res: any) => {
     try {
         const followKrneWala = req.id; // patel
         const jiskoFollowKrunga = req.params.id; // shivani
@@ -218,8 +229,6 @@ export const follewingandfollower=async(req:any,res:any)=>{
 
         const user = await User.findById(followKrneWala);
         const targetUser = await User.findById(jiskoFollowKrunga);
-
-
         if (!user || !targetUser) {
             return res.status(400).json({
                 message: 'User not found',
@@ -231,14 +240,14 @@ export const follewingandfollower=async(req:any,res:any)=>{
         if (isFollowing) {
             // unfollow logic ayega
             await Promise.all([
-                User.updateOne({ _id: followKrneWala }, { $pull: { following: jiskoFollowKrunga } }),
+                User.updateOne({ _id: followKrneWala }, { $pull: { followings: jiskoFollowKrunga } }),
                 User.updateOne({ _id: jiskoFollowKrunga }, { $pull: { followers: followKrneWala } }),
             ])
             return res.status(200).json({ message: 'Unfollowed successfully', success: true });
         } else {
             // follow logic ayega
             await Promise.all([
-                User.updateOne({ _id: followKrneWala }, { $push: { following: jiskoFollowKrunga } }),
+                User.updateOne({ _id: followKrneWala }, { $push: { followings: jiskoFollowKrunga } }),
                 User.updateOne({ _id: jiskoFollowKrunga }, { $push: { followers: followKrneWala } }),
             ])
             return res.status(200).json({ message: 'followed successfully', success: true });
