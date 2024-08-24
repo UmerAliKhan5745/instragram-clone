@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import { setAuthUser } from "../redux/authSlice";
 import { Link } from 'react-router-dom';
+import { RootState } from "../redux/store";
 
 const LoginPage = () => {
   const nagviate = useNavigate()
@@ -14,11 +15,10 @@ const LoginPage = () => {
   const [input, setInput] = useState({
     email: "", password: ""
   });
-  const authState = useSelector((state: any) => {
-    return state.auth || {};
-  });
-  const { user } = authState;
+  const { user } = useSelector((state: RootState) => state.auth || {});
 
+
+  console.log(user,'login wala user')
   const changeEventHandler = (e: any) => {
     setInput({ ...input, [e.target.name]: e.target.value })
   }
@@ -62,7 +62,7 @@ const LoginPage = () => {
     if (user) {
       nagviate('/')
     }
-  }, [])
+  }, [user,nagviate])
   return (
     <div className="bg-gray-100 h-screen flex items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">

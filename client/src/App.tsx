@@ -3,7 +3,6 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import MainLayout from "./components/MainLayout";
-import './App.css';
 import ChatPage from "./components/ChatPage";
 import EditProfile from "./components/EditProfile";
 import Home from "./components/Home";
@@ -11,24 +10,25 @@ import Profile from "./components/Profile";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import ErrorPage from "./components/ErrorPage";
+import ProtectedRoutes from "./components/ProtectedRoutes";
 const browserRouter = createBrowserRouter([
   {
     path: "/",
-    element: <MainLayout/>,
-    errorElement: <ErrorPage/>,
-    children: [ 
+    element: <ProtectedRoutes><MainLayout /></ProtectedRoutes>,
+    errorElement: <ErrorPage />,
+    children: [
       {
         path: "/",
-        element: <Home/>
+        element: <ProtectedRoutes> <Home /></ProtectedRoutes>,
       }, {
         path: "/profile/:id",
-        element: <Profile/>
+        element: <ProtectedRoutes><Profile /></ProtectedRoutes>,
       }, {
-        path: "/account/:id",
-        element: <EditProfile/>
+        path: '/account/edit',
+        element: <ProtectedRoutes> <EditProfile /></ProtectedRoutes>,
       }, {
         path: "/chat",
-        element: <ChatPage/>
+        element: <ProtectedRoutes><ChatPage /></ProtectedRoutes>,
       }
     ]
   },

@@ -99,6 +99,7 @@ export const login = async (req: any, res: Response) => {
                     }
             })
         )
+
         const userinfo = {
             _id: user._id,
             username: user.username,

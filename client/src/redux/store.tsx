@@ -20,6 +20,8 @@ const persistConfig = {
     storage,
     whitelist: ['auth','post'],
 }
+export type RootState = ReturnType<typeof rootReducer>;
+
 const rootReducer=combineReducers({
     auth:authSlice,
     post:postSlice

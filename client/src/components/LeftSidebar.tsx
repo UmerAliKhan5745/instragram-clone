@@ -1,15 +1,19 @@
 import axios from 'axios'
 import { Heart, Home, LogOut, MessageCircle, PlusSquare, Search, TrendingUp } from 'lucide-react'
 import { toast } from "sonner";
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom'
 import { setAuthUser } from '../redux/authSlice';
-// import { persistor } from '../redux/store';
+import { useState } from 'react';
+import CreatePost from './CreatePost';
+import { Avatar, AvatarImage, AvatarFallback } from '@radix-ui/react-avatar';
 
 
 function LeftSidebar() {
     const dispatch = useDispatch();
     const nagviate = useNavigate()
+    const [open, setOpen] = useState(false)
+    const { user } = useSelector((state: any) => state.auth)
     const logOutHandler = async () => {
         try {
             const response = await axios({ method: "get", url: 'http://localhost:4000/api/v1/user/logout' })
@@ -17,7 +21,7 @@ function LeftSidebar() {
                 dispatch(setAuthUser(null))
                 toast.success(response.data.message);
                 nagviate("/login");
-                localStorage.removeItem('persist:root'); 
+                localStorage.removeItem('persist:root');
             }
         } catch (error: any) {
             console.log(error)
@@ -31,27 +35,33 @@ function LeftSidebar() {
         if (textType === 'Logout') {
             logOutHandler()
         }
-        else if (textType === 'Create'){
+        else if (textType === 'Create') {
+            setOpen(true)
         }
-        else if (textType === 'Profile'){
-            nagviate(`/profile/`)//${user.id}
+        else if (textType === 'Profile') {
+            nagviate(`/profile/${user._id}`)
         }
-        else if (textType === 'Home'){
+        else if (textType === 'Home') {
             nagviate('/')
         }
-        else if (textType === 'Messages'){
-           nagviate(`/chat`)
+        else if (textType === 'Messages') {
+            nagviate(`/chat`)
         }
     }
 
     const sidebarItems = [
         { icon: <Home />, text: "Home" },
         { icon: <Search />, text: "Search" },
-        { icon: <TrendingUp />, text: "Search" },
+        { icon: <TrendingUp />, text: "Explore" },
         { icon: <MessageCircle />, text: "Messages" },
         { icon: <Heart />, text: "Notifications" },
-        { icon: <PlusSquare />, text: "Create" },
-        { icon: '', text: "Profile" },// will done after some time
+        {
+            icon: (
+                <img src={user?.profilePicture}alt="@shadcn" className="w-10 h-10 rounded-full" />
+                
+            ),
+            text: "Profile"
+        }, { icon: <PlusSquare />, text: "Create" },
         { icon: <LogOut />, text: "Logout" },
 
     ]
@@ -76,6 +86,8 @@ function LeftSidebar() {
                     }</div>
                 </div>
             </div>
+
+            <CreatePost open={open} setOpen={setOpen} />
         </>
     )
 }

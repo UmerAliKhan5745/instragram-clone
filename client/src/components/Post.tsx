@@ -5,65 +5,86 @@ import { Dialog, DialogContent, DialogTrigger } from './ui/dialog';
 import React, { useState } from 'react';
 import CommentDialog from './CommentDialog';
 import axios from 'axios';
-import { setPost } from '../redux/postSlice';
+import { setPost, setSelectedPost } from '../redux/postSlice';
 import { toast } from 'sonner';
 
-function Post({ post }:any) {
+function Post({ post }: any) {
+  const dispatch = useDispatch()
   const posts = useSelector((state: any) => state.auth.post)
-  const { user } = useSelector((state:any) => state.auth || {});
+  const { user } = useSelector((state: any) => state.auth || {});
   const [liked, setLiked] = useState(post.likes.includes(user?._id) || false);
   const [postLike, setPostLiked] = useState(post.likes.length);
   const [comment, setComment] = useState(post.comments);
   const [text, setText] = useState("");
+  const [open,setOpen]=useState(false)
 
-  const dispatch=useDispatch()
-const changeEventHandler=(e:any)=>{
-  let inputText=e.target.value;
-  if(inputText.trim()){
-    setText(inputText)
-  }else{
-    setText('')
+  const changeEventHandler = (e: any) => {
+    let inputText = e.target.value;
+    if (inputText.trim()) {
+      setText(inputText)
+    } else {
+      setText('')
+    }
   }
 
-}
+  const config = {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    withCredentials: true, // This should be part of the config object
+  };
 
-const config = {
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true, // This should be part of the config object
-};
-
-const commentHandler = async() => {
-  try {
-    const response = await axios({
-      method: 'post',
-      url:`http://localhost:4000/api/v1/post/comment/${post._id}`, 
-      data: { text }, // Make sure text is sent as an object
-      ...config, // Spread config object here
-    });
-if(response.data.success){
-
-  const updatedComments=[...comment,response.data.comment]
-setComment(updatedComments)    
-  const upDatedPostData = posts.map((p:any)=>{
-    p._id===post._id?{...p,comments:upDatedPostData}:p
-  })
-  dispatch(setPost(upDatedPostData))
-  toast.success(response.data.message);
-  setText("");
-}
-    // Handle the response (e.g., updating UI, state, etc.)
-  } catch (error) {
-    console.error('Error posting comment:', error);
-    // Handle the error (e.g., show error message to the user)
-  }
-};
-
-  const bookmarkHandler=async()=>{
+  const deletePostHandler=async()=>{
     try {
-      const responce=await axios({method:"get",url:`http://localhost:4000/api/v1/post/bookmark/${post._id}`,withCredentials:true})
+
+      const responce=await axios({
+        method: 'delete',
+        url: `http://localhost:4000/api/v1/post/delete/${post?._id}`,
+      })
       if(responce.data.success){
+        const updatedPostData=posts.filter((items:any)=>items?.id!==post?.id)
+        dispatch(setPost(updatedPostData))
+        toast.success(responce.data.message);
+
+      }
+      
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  const commentHandler = async () => {
+    try {
+      const response = await axios({
+        method: 'post',
+        url: `http://localhost:4000/api/v1/post/comment/${post._id}`,
+        data: { text }, // Make sure text is sent as an object
+        ...config, // Spread config object here
+      });
+      if (response.data.success) {
+        const updatedComments = [...comment, response.data.comment];
+        setComment(updatedComments);
+        
+        const updatedPostData = posts.map((p: any) => {
+          return p._id === post._id ? { ...p, comments: updatedComments } : p;
+        });
+        
+        
+        
+        dispatch(setPost(updatedPostData))
+        toast.success(response.data.message);
+        setText("");
+      }
+      // Handle the response (e.g., updating UI, state, etc.)
+    } catch (error) {
+      console.error('Error posting comment:', error);
+           // Handle the error (e.g., show error message to the user)
+    }
+  };
+
+  const bookmarkHandler = async () => {
+    try {
+      const responce = await axios({ method: "get", url: `http://localhost:4000/api/v1/post/bookmark/${post._id}`, withCredentials: true })
+      if (responce.data.success) {
         toast.success(responce.data.message);
 
       }
@@ -71,35 +92,37 @@ setComment(updatedComments)
       console.log(error)
     }
   }
-  const likeOrDislikeHandler=async()=>{
-try {
-  const action=liked?"dislike":"like";
-const responce=await axios({
-  method: 'get',
-  url: `http://localhost:4000/api/v1/post//${action}/${post._id}`,
-  withCredentials: true,})
+  const likeOrDislikeHandler = async () => {
+    try {
+      const action = liked ? "dislike" : "like";
+      const responce = await axios({
+        method: 'get',
+        url: `http://localhost:4000/api/v1/post//${action}/${post._id}`,
+        withCredentials: true,
+      })
 
-  if(responce.data.success){
-    const upDatedLike = liked ? postLike -1 : postLike + 1;
+      if (responce.data.success) {
+        const upDatedLike = liked ? postLike - 1 : postLike + 1;
 
-    setPostLiked(upDatedLike)
-    setLiked(!liked)
+        setPostLiked(upDatedLike)
+        setLiked(!liked)
+        const updatedPostData = posts.map((p: any) => {
+          return p._id === post._id
+            ? {
+                ...p,
+                likes: liked ? p.likes.filter((id: any) => id !== user._id) : [...p.likes, user._id]
+              }
+            : p;
+        });
+        dispatch(setPost(updatedPostData))
+        toast.success(responce.data.message);
+        setText('')
 
-    const ubdatedPostData=posts.map((p:any)=>{
-      p._id===post._id?{
-        ...p,
-        likes:liked?p.likes.filter((id:any)=>id!==user._id):[...p.likes,user._id]
-      }:p
-    })
-    dispatch(setPost(ubdatedPostData))
-    toast.success(responce.data.message);
-    setText('')
+      }
 
-  }
+    } catch (error) {
 
-} catch (error) {
-  
-}    
+    }
   }
 
   return (
@@ -130,7 +153,7 @@ const responce=await axios({
               Add to favorites
             </button>
             {user && user?._id === post?.author._id && (
-              <button type="button" className="cursor-pointer w-fit">
+              <button type="button" onClick={deletePostHandler} className="cursor-pointer w-fit">
                 Delete
               </button>
             )}
@@ -150,11 +173,15 @@ const responce=await axios({
             {liked ? (
               <FaHeart size={'24'} onClick={likeOrDislikeHandler} className='cursor-pointer text-red-600' />
             ) : (
-              <FaRegHeart size={'22px'}onClick={likeOrDislikeHandler}  className='cursor-pointer hover:text-gray-600' />
+              <FaRegHeart size={'22px'} onClick={likeOrDislikeHandler} className='cursor-pointer hover:text-gray-600' />
             )}
           </div>
-          <MessageCircle className='cursor-pointer hover:text-gray-600' />
-          <Send className='cursor-pointer hover:text-gray-600' />
+          <MessageCircle onClick={() => {
+                        dispatch(setSelectedPost(post));
+                        setOpen(true);
+                    }} className='cursor-pointer hover:text-gray-600' />
+                    
+                              <Send className='cursor-pointer hover:text-gray-600' />
         </div>
         <Bookmark onClick={bookmarkHandler} className='cursor-pointer hover:text-gray-600' />
       </div>
@@ -166,13 +193,16 @@ const responce=await axios({
         {post.caption}
       </p>
 
-      {comment.length > 0 && (
-        <span className='cursor-pointer text-sm text-gray-400'>
-          View all {comment.length} comments
-        </span>
-      )}
+      {
+                comment.length > 0 && (
+                    <span onClick={() => {
+                        dispatch(setSelectedPost(post));
+                        setOpen(true);
+                    }} className='cursor-pointer text-sm text-gray-400'>View all {comment.length} comments</span>
+                )
+            }
 
-      <CommentDialog />
+      <CommentDialog open={open} setOpen={setOpen} />
 
       <div className='flex items-center justify-between'>
         <input
